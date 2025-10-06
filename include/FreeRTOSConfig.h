@@ -64,7 +64,7 @@
 #define configTICK_RATE_HZ                       ((TickType_t)1000)
 #define configMAX_PRIORITIES                     ( 7 )
 #define configMINIMAL_STACK_SIZE                 ((uint16_t)128)
-#define configTOTAL_HEAP_SIZE                    ((size_t)5000)
+#define configTOTAL_HEAP_SIZE                    ((size_t)10000)
 #define configMAX_TASK_NAME_LEN                  ( 16 )
 #define configUSE_16_BIT_TICKS                   0
 #define configUSE_MUTEXES                        1
@@ -137,5 +137,25 @@ standard names. */
 /* USER CODE BEGIN Defines */   	      
 /* Section where parameter definitions can be added (for instance, to override default ones in FreeRTOS.h) */
 /* USER CODE END Defines */ 
+
+#define configUSE_MUTEXES 1
+
+// My debugging trace-hook macros.
+// These macros all go into FreeRTOSConfig.h
+// See https://www.freertos.org/rtos-trace-macros.html.
+
+#define configUSE_APPLICATION_TASK_TAG 1
+#define MAX_DEBUG_NOTES 3000
+extern unsigned char g_debug_notes [MAX_DEBUG_NOTES];
+extern unsigned g_n_debug_notes;
+
+#define traceTASK_INCREMENT_TICK(xTickCount) \
+	if (g_n_debug_notes<MAX_DEBUG_NOTES) \
+	    g_debug_notes[g_n_debug_notes++] = 4;
+
+// pxCurrentTCB contains the handle of the task about to enter Running.
+#define traceTASK_SWITCHED_IN() \
+	if (g_n_debug_notes<MAX_DEBUG_NOTES) \
+	    g_debug_notes[g_n_debug_notes++] = (int)pxCurrentTCB->pxTaskTag;
 
 #endif /* FREERTOS_CONFIG_H */

@@ -11,7 +11,7 @@ static void USART_Delay(uint32_t us);
 // They're now what the Arduino API is built out of, so they're static.
 // A few other functions (UART_write() and UART_write_byte_nonB()) are here but
 // commented out, since the Arduino API doesn't use them.
-static void UART_write_byte(USART_TypeDef *USARTx, char data);
+//static void UART_write_byte(USART_TypeDef *USARTx, char data);
 static void UART1_Init (int baud);
 static void UART2_Init (int baud);
 
@@ -53,7 +53,7 @@ static void UART2_GPIO_Init(void) {
     GPIOA->OTYPER  &= ~((0x3<<(2*2)) | (0x3<<(2*15)));	// Clear bits
 }
 
-void UART1_Init (int baud) {
+static void UART1_Init (int baud) {
     // Enable the clock of USART 1 & 2
     RCC->APB2ENR |= RCC_APB2ENR_USART1EN;  // Enable USART 1 clock
 
@@ -161,7 +161,7 @@ char UART_read (USART_TypeDef * USARTx) {
     USARTx->ISR &= ~USART_ISR_TC;
 }*/
 
-static void UART_write_byte (USART_TypeDef *USARTx, char data) {
+void UART_write_byte (USART_TypeDef *USARTx, char data) {
     // spin-wait until the TXE (TX empty) bit is set
     while (!(USARTx->ISR & USART_ISR_TXE));
 
@@ -172,7 +172,8 @@ static void UART_write_byte (USART_TypeDef *USARTx, char data) {
     USART_Delay (300);
 }
 
-/*static void UART_write_byte_nonB (USART_TypeDef *USARTx, uint8_t data) {
+/* This one uses vTaskDelay instead of spin-waiting.
+static void UART_write_byte_nonB (USART_TypeDef *USARTx, uint8_t data) {
     // spin-wait until TXE (TX empty) bit is set
     while (!(USARTx->ISR & USART_ISR_TXE))
 	vTaskDelay (1);
@@ -211,19 +212,21 @@ void serial_write (USART_TypeDef *USARTx, const char *buffer) {
     USARTx->ISR &= ~USART_ISR_TC;
 }
 
-// Why isn't the baud rate a function parameter of serial_begin()? Because
-// that's not how Arduino specced it. Why isn't it an optional parameter
-// defaulting to 9600? Because C doesn't support default parameters.
-void serial_begin (USART_TypeDef *USARTx) {
-    int baud=9600;
+// Note that the official Arduino spec does *not* take a baud-rate parameter.
+// But it's just so much more convenient this way :-)
+// Why isn't it an optional parameter defaulting to 9600? Because C doesn't
+// support default parameters.
+void serial_begin (USART_TypeDef *USARTx, int baud_rate) {
     if (USARTx == USART1)
-	UART1_Init (baud);
+	UART1_Init (baud_rate);
     else if (USARTx == USART2)
-	UART2_Init (baud);
+	UART2_Init (baud_rate);
     else
 	error ("Initializing an illegal UART");
 }
 
+// Waits for a character to be typed, and then reads it. We block in a spin
+// loop until the character is typed.
 char serial_read (USART_TypeDef *USARTx) {
     // The SR_RXNE (Read data register not empty) bit is set by hardware.
     // We spin wait until that bit is set
