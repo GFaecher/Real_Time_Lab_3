@@ -33,8 +33,7 @@
 // static volatile int g_writer1_done=0;
 // static volatile int g_writer2_done=0;
 
-// // The global queue that holds characters destined for the UART.
-// // It's 32 bytes (not 32 ints).
+// // The global queue -- 32 bytes (not 32 ints).
 // QueueHandle_t g_queue;
 // #define QUEUE_SIZE 32
 
@@ -54,30 +53,33 @@
 // //*****************************************************
 // // This part of the file has our core routines for writing to the screen.
 // // - The main shared data structure is a FreeRTOS queue g_queue.
-// // - Task_UART_daemon() continually loops: if g_queue has a character in it,
-// //   then print that character using UART_write_byte_nonB(). Then, whether the
-// //   queue was empty or not, sleep for a tick and check again.
+// // - Task_UART_daemon() continually loops: pull a character from the queue
+// //   using a blocking read, then print that character using
+// //   UART_write_byte_nonB().
 // // - How do characters get into the queue? The two writer tasks (which will come
 // //   later) each call serial_write_lab3(string). Serial_write_lab3() takes
 // //   a string and writes it into g_queue. Internally, serial_write_lab3()
-// //   loops through its string character by character. For each character, it
-// //   checks if g_queue has any space and writes the char into g_queue if so;
-// //   and sleeps for a tick and tries again if not.
+// //   merely does blocking queue writes of 1B until its string is used up.
 // //   Note that serial_write_lab3() is a function and not a task. It doesn't
 // //   return until it has found space to write its entire string into g_queue.
-// //   But there can easily be two instances of serial_write() active, that can be
+// //   But there can easily be two instance of serial_write() active, that can be
 // //   swapped in and out by the scheduler.
-// // - Note also that serial_write_lab3() is a special version of the usual
-// //   Arduino serial_write(), just for this lab. It's special because it works
-// //   with g_queue.
+// // - Note that serial_write_lab3() is a special version of the usual Arduino
+// //   serial_write(), just for this lab. It's special because it works with
+// //   g_queue.
+// //
+// // As opposed to lab3_main_v1.c, these versions of serial_write_lab3() and
+// // task_UART_daemon() don't ever put themselves to sleep with vTaskDelay(1).
+// // Instead, they just use blocking queue writes and reads to accomplish the
+// // same goal.
+// // This way is simpler to code and more in the spirit of queue -- and
+// // interestingly, has a very different end result.
 // //*****************************************************
 
 // static void serial_write_lab3 (const char *user_buf) {
 //     // Dump into the circular buffer.
 //     for (const char *cp=user_buf; *cp; ++cp) {
-// 	while (uxQueueMessagesWaiting (g_queue) == QUEUE_SIZE) // queue is full
-// 	    vTaskDelay (1);
-// 	if (xQueueSend (g_queue,cp,10) != pdPASS)
+// 	if (xQueueSend (g_queue,cp,5000) != pdPASS)
 // 	    error_152 ("Queue write failed");
 //     }
 // }
@@ -87,22 +89,19 @@
 //     vTaskSetApplicationTaskTag (NULL, (void *)3);
 //     char ch;
 //     while (!g_writer1_done || !g_writer2_done) {
-// 	// The main loop: if g_queue has any data, then print it.
-// 	if (uxQueueMessagesWaiting (g_queue) > 0) {	// queue isn't empty.
-// 	    if (xQueueReceive (g_queue, &ch, 1) != pdPASS)
-// 		    error_152 ("Queue read timed out");
-// 	        UART_write_byte (USART2, ch);	// this uses a spin loop.
-// 	    }
-// 	    vTaskDelay (1);
+        // 	// Returns an error condition if the read times out.
+        // 	if (xQueueReceive (g_queue, &ch, 5) == pdPASS)
+        // 	    //error_152 ("Queue read timed out");
+        // 	    UART_write_byte (USART2, ch);
 //     }
-
+    
 //     // Both writers are done. Print the accumulated debug info and then spin.
 //     digitalWrite (D13, 1);	// Turn the green LED on.
 //     UART_write_byte (USART2, '\r');
 //     UART_write_byte (USART2, '\n');
 //     for (int i=0; i<g_n_debug_notes; ++i) {
-//         char c = "I12D*????????"[g_debug_notes[i]];
-//         UART_write_byte (USART2, c);
+// 	char c = "I12D*????????"[g_debug_notes[i]];
+// 	UART_write_byte (USART2, c);
 //     }
 //     UART_write_byte (USART2, '\n');
 //     UART_write_byte (USART2, '\r');
