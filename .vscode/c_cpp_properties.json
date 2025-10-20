@@ -1,0 +1,54 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
+{
+    "configurations": [
+        {
+            "name": "PlatformIO",
+            "includePath": [
+                "C:/Users/etrnt/OneDrive/Desktop/School Work 25-26/Real Time Embedded Systems/Real_Time_Lab_3/include",
+                "C:/Users/etrnt/OneDrive/Desktop/School Work 25-26/Real Time Embedded Systems/Real_Time_Lab_3/src",
+                "C:/Users/etrnt/OneDrive/Desktop/School Work 25-26/Real Time Embedded Systems/Real_Time_Lab_3/src/freertos/portable/GCC/ARM_CM4F",
+                "C:/Users/etrnt/OneDrive/Desktop/School Work 25-26/Real Time Embedded Systems/Real_Time_Lab_3/include/freertos",
+                "C:/Users/etrnt/.platformio/packages/framework-cmsis/CMSIS/Include",
+                "C:/Users/etrnt/.platformio/packages/framework-cmsis-stm32l4/Include",
+                ""
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "C:/Users/etrnt/OneDrive/Desktop/School Work 25-26/Real Time Embedded Systems/Real_Time_Lab_3/include",
+                    "C:/Users/etrnt/OneDrive/Desktop/School Work 25-26/Real Time Embedded Systems/Real_Time_Lab_3/src",
+                    "C:/Users/etrnt/OneDrive/Desktop/School Work 25-26/Real Time Embedded Systems/Real_Time_Lab_3/src/freertos/portable/GCC/ARM_CM4F",
+                    "C:/Users/etrnt/OneDrive/Desktop/School Work 25-26/Real Time Embedded Systems/Real_Time_Lab_3/include/freertos",
+                    "C:/Users/etrnt/.platformio/packages/framework-cmsis/CMSIS/Include",
+                    "C:/Users/etrnt/.platformio/packages/framework-cmsis-stm32l4/Include",
+                    ""
+                ]
+            },
+            "defines": [
+                "PLATFORMIO=60118",
+                "STM32L4",
+                "STM32L432xx",
+                "LL_DEFINES_SYSTEMCORECLOCK",
+                "F_CPU=80000000L",
+                ""
+            ],
+            "compilerPath": "C:/Users/etrnt/.platformio/packages/toolchain-gccarmnoneeabi/bin/arm-none-eabi-gcc.exe",
+            "compilerArgs": [
+                "-mcpu=cortex-m4",
+                "-mthumb",
+                "-mfloat-abi=hard",
+                "-mfpu=fpv4-sp-d16",
+                "-mthumb",
+                "-mcpu=cortex-m4",
+                "-mfloat-abi=hard",
+                "-mfpu=fpv4-sp-d16",
+                ""
+            ]
+        }
+    ],
+    "version": 4
+}
