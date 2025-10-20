@@ -14,16 +14,19 @@
 // Remember that 100Hz is ?? FreeRTOS ticks, and 3.3V is an argument of ??
 // to analogWrite().
 void task_sawtooth (void * pvParameters) {
-    uint32_t value = 255;
+    uint32_t value = 0;
     while(1){
         analogWrite(A4, value);
-        value = (value - 1);
-        if(value == 0) {
-                value = 255;
+        value = (value + 25);
+        if(value >= 250) {
+                value = 0;
         }
-        vTaskDelay(3);
+        vTaskDelay(1);
     }
 }
+
+//every 10ms 2550 ms = 2.55s
+// .01s / 51 = 0.039 vtask delay 
 
 #define BLINK_GREEN_DELAY ( 500 / portTICK_PERIOD_MS )
 void task_blink_green (void *pvParameters) {
@@ -41,7 +44,7 @@ int main() {
 
     // The green LED is at Nano D13, or PB3.
     pinMode(D13, "OUTPUT");
-    pinMode(A3, "OUTPUT");
+    pinMode(A4, "OUTPUT");
     digitalWrite (D13, 0);
 
     // Create tasks.
