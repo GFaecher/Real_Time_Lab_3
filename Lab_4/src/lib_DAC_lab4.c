@@ -130,5 +130,139 @@ void analogWrite (enum Pin pin, uint32_t value) {
 
 #include "stm32l4xx_hal.h"
 #include "stm32l4xx_hal_dac.h"
-        ... fill in your code here...
+
+/* Private variables ---------------------------------------------------------*/
+DAC_HandleTypeDef hdac1;
+
+void Error_Handler(void);
+
+/**
+  * @brief DAC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_DAC1_Init(void) {
+
+    __HAL_RCC_DAC1_CLK_ENABLE();
+
+    if (HAL_Init()) Error_Handler();
+
+    /* USER CODE BEGIN DAC1_Init 0 */
+
+    /* USER CODE END DAC1_Init 0 */
+
+    DAC_ChannelConfTypeDef sConfig = {0};
+
+    /* USER CODE BEGIN DAC1_Init 1 */
+
+    /* USER CODE END DAC1_Init 1 */
+
+    /** DAC Initialization
+     */
+    hdac1.Instance = DAC1;
+    if (HAL_DAC_Init(&hdac1) != HAL_OK)
+    {
+    Error_Handler();
+    }
+
+    /** DAC channel OUT1 config
+     */
+    sConfig.DAC_SampleAndHold = DAC_SAMPLEANDHOLD_DISABLE;
+    sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
+    sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
+    sConfig.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_DISABLE;
+    sConfig.DAC_UserTrimming = DAC_TRIMMING_FACTORY;
+    if (HAL_DAC_ConfigChannel(&hdac1, &sConfig, DAC_CHANNEL_1) != HAL_OK)
+    {
+    Error_Handler();
+    }
+
+    /** DAC channel OUT2 config
+     */
+    if (HAL_DAC_ConfigChannel(&hdac1, &sConfig, DAC_CHANNEL_2) != HAL_OK)
+    {
+    Error_Handler();
+    }
+    /* USER CODE BEGIN DAC1_Init 2 */
+
+    /* USER CODE END DAC1_Init 2 */
+
+}
+
+/**
+  * @brief GPIO Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+
+  /* USER CODE END MX_GPIO_Init_1 */
+
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PB3 */
+  GPIO_InitStruct.Pin = GPIO_PIN_3;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+
+  /* USER CODE END MX_GPIO_Init_2 */
+}
+
+// This is the Arduino API.
+// Most Arduino boards don't have a DAC; so on those boards, this function
+// actually does a PWM on a digital GPIO pin. But it's true analog on the few
+// Arduinos that have a DAC, and that's what we do too. Also, it defaults to
+// 8-bit writes; a few Arduinos support AnalogWriteResolution(12 bits). We
+// could do that easily, but I haven't bothered.
+// - 'Pin' can only be A3 (PA4, for DAC 1) or A4 (PA5, for DAC 2).
+// - 'Value' is in [0,255] to write in [0,3.3V].
+void analogWrite (enum Pin pin, uint32_t value) {
+    static bool DAC1_enabled=0, DAC2_enabled=0;
+    if (pin==A3) {		// DAC #1
+        if (!DAC1_enabled) {
+            MX_DAC1_Init();
+            MX_GPIO_Init();
+            HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
+        }
+        DAC1_enabled = 1;
+        HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, value);
+    } else if (pin==A4) {	// DAC #2
+        if (!DAC2_enabled) {
+            MX_DAC1_Init();
+            MX_GPIO_Init();
+            HAL_DAC_Start(&hdac1, DAC_CHANNEL_2);
+        }
+        DAC2_enabled = 1;
+        HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_8B_R, value);
+    } else
+        error ("Called analogWrite() on a non-DAC pin");
+}
+
+/**
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* User can add his own implementation to report the HAL error return state */
+  __disable_irq();
+  while (1)
+  {
+  }
+  /* USER CODE END Error_Handler_Debug */
+}
+
 #endif

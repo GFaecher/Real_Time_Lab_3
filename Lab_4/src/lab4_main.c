@@ -16,6 +16,7 @@
 void task_sawtooth (void * pvParameters) {
     uint32_t value = 0;
     while(1){
+        analogWrite(A3, value);
         analogWrite(A4, value);
         value = (value + 25);
         if(value >= 250) {
@@ -44,6 +45,7 @@ int main() {
 
     // The green LED is at Nano D13, or PB3.
     pinMode(D13, "OUTPUT");
+    pinMode(A3, "OUTPUT");
     pinMode(A4, "OUTPUT");
     digitalWrite (D13, 0);
 
