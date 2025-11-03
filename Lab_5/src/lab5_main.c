@@ -21,7 +21,7 @@ static void setup_DMA (uint8_t *DMA_mem_addr,
     // The DMA controller is chapter 11 of the RM0394 reference manual.
 
     // Turn on the clocks to the DMA controller.
-    RCC->AHB1ENR ...
+    RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN;
 
     // DMA ISR (interrupt status reg) needs no programming.
 
@@ -31,24 +31,33 @@ static void setup_DMA (uint8_t *DMA_mem_addr,
     // MSize and 1B PSize just seems to mean losing the 8 most-significant bits
     // of each memory read, rather than very efficiently having 1 mem read ->
     // 2 DAC writes.
-    DMA1_Channel3->CCR  ...
+    DMA1_Channel3->CCR &= ~DMA_CCR_EN;
+    DMA1_Channel3->CCR |= (DMA_CCR_CIRC | DMA_CCR_DIR | DMA_CCR_MINC);
+    
+    DMA1_Channel3->CCR  &= ~(DMA_CCR_PINC | DMA_CCR_MEM2MEM | DMA_CCR_PSIZE | DMA_CCR_MSIZE);
+
+    //DMA_CCR_PINC and memtomem and DMA_CCR_MEM2MEM
 
     // Number of data to transfer register for "DMA channel x" (DMA_CNDTRx). One
     // CSR for each DMA channel; it contails the number of data to transfer.
     // Set to the appropriate number. And we can read it (after disabling the
     // channel).
-    DMA1_Channel3->CNDTR...
+    DMA1_Channel3->CNDTR &= ~DMA_CNDTR_NDT;
+    DMA1_Channel3->CNDTR |= DMA_data_size;
 
     // Peripheral address register for "DMA channel x" (DMA_CPARx)
-    DMA1_Channel3->CPAR...
+    DMA1_Channel3->CPAR &= ~DMA_CPAR_PA;
+    DMA1_Channel3->CPAR |= (uint32_t)DMA_periph_addr;
 
     // Memory address register for "DMA channel x" (DMA_CMARx)
-    DMA1_Channel3->CMAR...
+    DMA1_Channel3->CMAR &= ~DMA_CMAR_MA;
+    DMA1_Channel3->CMAR |= (uint32_t)DMA_mem_addr;
 
     // DMA channel selection register (DMA_CSELR)
     // This is one CSR for all seven channels of one DMA controller.
     // Bits for request mapping: so,
-    DMA1_CSELR->CSELR...
+    DMA1_CSELR->CSELR &= ~DMA_CSELR_C3S;
+    DMA1_CSELR->CSELR |= (0b011000000000);
 
     // Finally: enable the DMA channel.
     DMA1_Channel3->CCR |=  DMA_CCR_EN;
@@ -184,14 +193,14 @@ static void DAC1_Init_with_DMA (){
 
 // Various waveforms.
 // Sawtooth
-//static uint8_t wave_mem[] = {0,10,20,30,40,50,60,70,80,90,100,110,120,130};
+static uint8_t wave_mem[] = {0,10,20,30,40,50,60,70,80,90,100,110,120,130};
 // Reverse sawtooth
 //static uint8_t wave_mem[] = {130,120,110,100,90,80,70,60,50,40,30,20,10,0};
 // Triangle
-//static uint8_t wave_mem[] = {0,10,20,30,40,50,60,70,60,50,40,30,20,10};
+// static uint8_t wave_mem[] = {0,10,20,30,40,50,60,70,60,50,40,30,20,10};
 // Sine
-static uint8_t wave_mem[]= {100, 131, 159, 181, 195, 200, 195, 181, 159, 131,
-                            100,  69,  41,  19,   5,   0,   5,  19,  41,  69};
+// static uint8_t wave_mem[]= {100, 131, 159, 181, 195, 200, 195, 181, 159, 131,
+//                             100,  69,  41,  19,   5,   0,   5,  19,  41,  69};
 
 int main(void) {
     clock_setup_80MHz();	// 80MHz = 12.5ns phase

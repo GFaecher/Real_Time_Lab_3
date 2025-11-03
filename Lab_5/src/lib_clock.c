@@ -26,7 +26,7 @@ void clock_setup_16MHz(void) {
     // Wait until HSI has settled down after turnon. We know this by checking
     // another bit in RCC->CR.
     while ( (RCC->CR & (uint32_t) RCC_CR_HSIRDY) == 0 )
-	;
+        ;
 
     // Select line on the main SYSCLK mux, choosing between HSE, MSI, HSI16 and
     // a frequency-multiplied PLL to drive SYSCLK.
@@ -45,11 +45,12 @@ void clock_setup_16MHz(void) {
 #ifdef USE_HAL
     HAL_Init();
 
-    // Fix the bug where the real Systick interrupt handler isn't called, and we
-    // instead get the default infinite-loop-hang handler. The fix is to just
-    // not generate SysTick interrupts. Note that SysTick interrupts are enabled
-    // by both HAL_Init() and also by SystemClock_Config(), so this code must
-    // come after both of those.
+    // HAL wants to control the SysTick interrupt handler, so as to use it for user-called delay
+    // functions. However, we don't use those, and FreeRTOS also wants to own the handler so as
+    // to call its scheduler, so our resolution is to let FreeRTOS do it. But both HAL_Init() and
+    // SystemClock_Config() enable SysTick interrupts, and FreeRTOS doesn't supply the
+    // handler until runtime; so in the interim we make sure to not generate SysTick interrupts.
+    // This code must of course come *after* HAL_Init().
     SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;
 #endif
 }
@@ -66,7 +67,7 @@ void clock_setup_80MHz(void){
     // (and note that we don't need any wait states at 16MHz).
     FLASH->ACR &= ~FLASH_ACR_LATENCY;
     FLASH->ACR |=  FLASH_ACR_LATENCY_2WS;
-		
+
     // Clock Control Register (CR), bit 8
     // Enable High Speed Internal Clock (HSI = 16 MHz). This just turns it on,
     // without changing any mux selects.
@@ -75,7 +76,7 @@ void clock_setup_80MHz(void){
     // Wait until HSI has settled down after turnon. We know this by checking
     // another bit in RCC->CR.
     while((RCC->CR & RCC_CR_HSIRDY) == 0)
-	;
+        ;
 
     // Internal Clock Sources Calibration Register (ICSCR).
     // This 32-bit register has 16 bits each for the HSI and MSI clocks. For
@@ -92,7 +93,7 @@ void clock_setup_80MHz(void){
 
     // Wait for it to lock. Not sure why this is needed, since it's off!
     while((RCC->CR & RCC_CR_PLLRDY) == RCC_CR_PLLRDY)
-	;
+        ;
 
     // Now that the PLL is off, let's configure it.
     // First, select clock source to PLL. The reset value is no clock at all.
@@ -117,7 +118,7 @@ void clock_setup_80MHz(void){
 
     // And wait for it to lock.
     while((RCC->CR & RCC_CR_PLLRDY) == 0)
-	;
+        ;
 
     // Select line on the main SYSCLK mux, choosing between HSE, MSI, HSI16 and
     // a frequency-multiplied PLL to drive SYSCLK. We haven't touched it so far,
@@ -128,8 +129,8 @@ void clock_setup_80MHz(void){
 
     // Wait until the mux has switched
     while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL)
-	;
-	
+        ;
+
     // Set the AHB, APB1 and APB2 clock prescalers all to x1 (which is their
     // reset default anyway).
     // AHB controls some peripherals itself, as well as driving APB1 (the
@@ -143,7 +144,7 @@ void clock_setup_80MHz(void){
     RCC->CR &= ~RCC_CR_PLLSAI1ON;
     // Then wait for it to actually be off.
     while ( (RCC->CR & RCC_CR_PLLSAI1ON) == RCC_CR_PLLSAI1ON )
-	;
+        ;
 
     // SA1 VCO freq = PLL-in-freq * N/M = 16 MHz * 24/2 = 192 MHz
     // We already set the PLL-in-freq=16Mh and M=2 above, for the main PLL.
@@ -173,7 +174,7 @@ void clock_setup_80MHz(void){
     RCC->CR |= RCC_CR_PLLSAI1ON;  // SAI1 PLL enable
     // Then wait for it to actually be on.
     while ( (RCC->CR & RCC_CR_PLLSAI1ON) == 0)
-	;
+        ;
 
     // Swing the final mux to drive the SA1 clock. It can come from
     // the SAI1 PLL P output, the SAI2 PLL P output, the main-PLL P output
@@ -188,11 +189,12 @@ void clock_setup_80MHz(void){
 #ifdef USE_HAL
     HAL_Init();
 
-    // Fix the bug where the real Systick interrupt handler isn't called, and we
-    // instead get the default infinite-loop-hang handler. The fix is to just
-    // not generate SysTick interrupts. Note that SysTick interrupts are enabled
-    // by both HAL_Init() and also by SystemClock_Config(), so this code must
-    // come after both of those.
+    // HAL wants to control the SysTick interrupt handler, so as to use it for user-called delay
+    // functions. However, we don't use those, and FreeRTOS also wants to own the handler so as
+    // to call its scheduler, so our resolution is to let FreeRTOS do it. But both HAL_Init() and
+    // SystemClock_Config() enable SysTick interrupts, and FreeRTOS doesn't supply the
+    // handler until runtime; so in the interim we make sure to not generate SysTick interrupts.
+    // This code must of course come *after* HAL_Init().
     SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;
 #endif
 }
