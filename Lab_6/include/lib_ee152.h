@@ -8,7 +8,7 @@ void error (char *message);
 
 // The Arduino Nano pin names.
 enum Pin {A0,A1,A2,A3,A4,A5,A6,A7,
-	  D0,D1,D2,D3,D4,D5,D6,D7,D8,D9,D10,D11,D12,D13 };
+          D0,D1,D2,D3,D4,D5,D6,D7,D8,D9,D10,D11,D12,D13, NO_PIN };
 
 ////////////////////////////////////////////////////////////////////
 // Clocks and timing.
@@ -46,9 +46,10 @@ void set_gpio_alt_func (GPIO_TypeDef *gpio,unsigned int pin,unsigned int func);
 // ADC
 //**********************************
 
-uint32_t analogRead(enum Pin pin);
+uint32_t analogRead(enum Pin pin);	// Arduino 12-bit reads.
 
-void ADC_Init(void);	// Sets up ADC1 channel 5, which is PA0 (Nano A0).
+// And the non-Arduino interface.
+void ADC_Init(void);		// Sets up ADC1 channel 5 (Nano A0, PA0).
 uint32_t ADC1_read (void);	// 12-bit read of whichever channel is set up.
 
 //**********************************
@@ -77,7 +78,7 @@ void DAC2_write (uint32_t data);
 //**********************************
 
 // Initialization.
-void serial_begin (USART_TypeDef *USARTx);
+void serial_begin (USART_TypeDef *USARTx, int baud_rate);
 
 // Very basic function: send a character string to the UART, one byte at a time.
 // Spin wait after each byte until the UART is ready for the next byte.
@@ -85,3 +86,15 @@ void serial_write (USART_TypeDef *USARTx, const char *buffer);
 
 // Spin wait until we have a byte.
 char serial_read (USART_TypeDef *USARTx);
+
+// Public function used to send binary data to the host-scope program(s).
+void UART_send_to_host (float ch1, float ch2);
+
+// Check if there are any keystrokes ready to read.
+bool UART_has_input_data();
+
+//**********************************
+// Debug
+//**********************************
+void analogWriteFromFile (enum Pin pin);
+int analogReadFromFile (int channel, int n_channels);

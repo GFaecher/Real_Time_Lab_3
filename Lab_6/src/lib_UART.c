@@ -116,11 +116,11 @@ static void USART_Init (USART_TypeDef *USARTx, bool tx_en, bool rx_en,int baud){
         USARTx->CR1  |= USART_CR1_TE;
     if (rx_en)
         USARTx->CR1  |= USART_CR1_RE;
-        
+
     // We originally turned off the USART -- now turn it back on.
     // Note that page 1202 says to turn this on *before* asserting TE and/or RE.
     USARTx->CR1  |= USART_CR1_UE; // USART enable                 
-        
+
     // Verify that the USART is ready to transmit...
     if (tx_en)
         while ( (USARTx->ISR & USART_ISR_TEACK) == 0)
@@ -165,7 +165,7 @@ static void UART_write_byte (USART_TypeDef *USARTx, char data) {
     // spin-wait until the TXE (TX empty) bit is set
     while (!(USARTx->ISR & USART_ISR_TXE));
 
-    // Writing USART data register automatically clears the TXE flag 	
+    // Writing USART data register automatically clears the TXE flag
     USARTx->TDR = data & 0xFF;
 
     // Wait 300us or so, to let the HW clear TXE.
@@ -178,7 +178,7 @@ static void UART_write_byte_nonB (USART_TypeDef *USARTx, uint8_t data) {
     while (!(USARTx->ISR & USART_ISR_TXE))
         vTaskDelay (1);
 
-    // Writing USART_DR automatically clears the TXE flag 	
+    // Writing USART_DR automatically clears the TXE flag
     USARTx->TDR = data & 0xFF;
 
     // Wait 300us or so, to let the HW clear TXE.
@@ -190,6 +190,40 @@ static void UART_write_byte_nonB (USART_TypeDef *USARTx, uint8_t data) {
 static void USART_Delay(uint32_t us) {
     uint32_t time = 100*us/7;    
     while(--time);   
+}
+
+/////////////////////////////////////////////
+// Non-Arduino-like useful public functions.
+/////////////////////////////////////////////
+
+// Send data to a host in the format used by scope_host programs.
+// The data is two floats in the range [0,1).
+// The format is to pack them into a 3B packet.
+#define BITS(n,h,l) ((n>>l) & ((1<<(h+1-l))-1))
+void UART_send_to_host (float ch1, float ch2) {
+    ch1=(ch1<0)? 0:ch1; ch1=(ch1>1)?1:ch1;
+    ch2=(ch2<0)? 0:ch2; ch2=(ch2>1)?1:ch2;
+
+    unsigned int i1=ch1*2047,	// Turn ch1 into an 11-bit fixed-point binary,
+		 i2=ch2*1023,	// and ch2 into 10 bit.
+		 packed_3B = (i1<<10) | i2,
+		 b0=0x80 | BITS(packed_3B,20,14),
+		 b1= BITS(packed_3B,13,7),
+		 b2= BITS(packed_3B,6,0);
+
+    // We cannot use serial_write() to send this data; it takes a C-style
+    // (i.e., zero-terminated) string, which means we cannot send any
+    // actual zero characters!
+    UART_write_byte (USART2, b0);
+    UART_write_byte (USART2, b1);
+    UART_write_byte (USART2, b2);
+}
+
+bool UART_has_input_data(USART_TypeDef *USARTx) {
+    // The SR_RXNE (Read data register not empty) bit is set by hardware.
+    // We spin wait until that bit is set
+    bool has_data = USARTx->ISR & USART_ISR_RXNE;
+    return (has_data);
 }
 
 /////////////////////////////////////////////
@@ -235,8 +269,4 @@ char serial_read (USART_TypeDef *USARTx) {
 
     // Reading USART_DR automatically clears the RXNE flag 
     return ((char)(USARTx->RDR & 0xFF));
-}
-
-bool UART_has_input_data (USART_TypeDef *USARTx) {
-    return (USARTx->ISR & USART_ISR_RXNE);
 }
