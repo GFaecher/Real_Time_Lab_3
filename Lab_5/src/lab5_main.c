@@ -74,6 +74,8 @@ static void setup_DMA (uint8_t *DMA_mem_addr,
 //   do that separately.
 static void setup_TIM2_channel
         (unsigned int presc, unsigned int reload, int chan){
+    
+    // presc = 100, reload = 100, chan = 1
     // Clock enable for timer 2, on the APB1 clock.
     RCC->APB1ENR1 |= RCC_APB1ENR1_TIM2EN;
 
@@ -83,7 +85,7 @@ static void setup_TIM2_channel
     TIM2->CR1 &= ~TIM_CR1_DIR;
 
     // Prescaler (PSC). Note we divide by val+1, not by val.
-    TIM2->PSC = presc-1;			// Prescale by 1000
+    TIM2->PSC = presc-1;			// Prescale by 100
 
     // Counter auto-reload register. Again, the count sequence has val+1
     // numbers.
