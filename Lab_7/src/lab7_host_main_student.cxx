@@ -219,13 +219,20 @@ typedef struct moving_tri Moving_tri;
 
 // One-time initialization of Moving_avg struct.
 static void mov_tri_init (Moving_tri *tri) {
-    ...
+    for (int i = 0; i < 20; i++) {
+        tri->buf[i] = 0;
+    }
+    tri->cur_idx = 0;
 }
 
 // Triangle filter
 static float mov_tri (Moving_tri *tri, float input) {
-    ...
-    return (result);
+//	out[N] = (in[N] - in[N-10]) * (in[N] - in[N+10])
+    tri->buf[tri->cur_idx] = input;
+    tri->cur_idx++;
+    int curr = tri->cur_idx;
+    return ((tri->buf[curr] - tri->buf[(curr + 10) % 20]) * (tri->buf[curr] - tri->buf[(curr + 10) % 20]));
+
 }
 
 ///////////////////////////////////////////////////////////
