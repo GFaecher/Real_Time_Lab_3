@@ -95,4 +95,5 @@ def plot_signal (signame, times=1, plus=0, spacing=.002):
     plt.plot (x_axis, data, label=signame, marker=".")
 
 parse_inputfile ("run.out")
+plot_signal()
 plot_what_you_want()

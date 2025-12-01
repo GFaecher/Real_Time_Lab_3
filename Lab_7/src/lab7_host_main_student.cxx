@@ -229,11 +229,29 @@ static void mov_tri_init (Moving_tri *tri) {
 static float mov_tri (Moving_tri *tri, float input) {
 //	out[N-10] = (in[N-10] - in[N-20]) * (in[N-10] - in[N])
     // get N-20 (current index before overwritten with new input)
-    int temp = tri->buf[tri->cur_idx];
+    // int temp = tri->buf[tri->cur_idx];
+    // tri->buf[tri->cur_idx] = input;
+    // int curr = tri->cur_idx;
+    // (tri->cur_idx++) % 20;
+    // return ((tri->buf[(curr + 10) % 20] - temp) * (tri->buf[(curr + 10) % 20]
+    // - tri->buf[curr]));
+    
     tri->buf[tri->cur_idx] = input;
-    int curr = tri->cur_idx;
-    (tri->cur_idx++) % 20;
-    return ((tri->buf[(curr + 10) % 20] - temp) * (tri->buf[(curr + 10) % 20] - tri->buf[curr]));
+
+    float answer;
+
+    if (tri->cur_idx < 10) {
+        answer = input - tri->buf[10 - tri->cur_idx] * input - tri->buf[tri->cur_idx + 10];
+    } else {
+        answer = input - tri->buf[tri->cur_idx - 10] * input - tri->buf[(tri->cur_idx + 10) % 20];
+    }
+
+    if (tri->cur_idx == 19) {
+        tri->cur_idx = 0;
+    } else {
+        tri->cur_idx++;
+    }
+    return(answer);
 }
 
 ///////////////////////////////////////////////////////////
@@ -270,7 +288,7 @@ int main() {
     mov_tri_init (&moving_tri);
     moving_max_init (&moving_thresh_max);
     
-    LOG("sample\tnotch60\thp_5Hz\tttm\tlp35\tthresh_2s_avg\tthresh_2s_max\tthresh\tlock_count");
+    LOG("sample\tnotch60\thp_5Hz\tttm\tlp35\tthresh\tlock_count");
 
     int heartRate = 0;
 
@@ -279,7 +297,7 @@ int main() {
 	if (sample == -1) break;
 
 	// 60Hz notch filter.
-	float notch60 = biquad_filter(biquad_60Hz_notch, g_biquad_state, (float)sample / 4095.0);
+	float notch60 = (float)biquad_filter(biquad_60Hz_notch, g_biquad_state, (float)sample / 4095);
 
 	// 5 Hz highpass, to remove baseline drift and flatten T wave.
 	// 5Hz = 100 samples @ 2ms/sample. Note that this also turn the input
@@ -316,16 +334,16 @@ int main() {
 
     if ((lock_count > 0) && spike) {	// In a potential R wave
         --lock_count;
-    } else if ((lock_count == 0) && spike) {
+    } else if ((lock_count <= 0) && spike) {
         heartRate += 1;
         lock_count = 125;
     } else {
         --lock_count;
     }
 	LOG(sample<<'\t'<< notch60 <<'\t'<< hp_5Hz <<'\t'<< ttm <<'\t'<< lp35
-	<<'\t'<<thresh<<'\t'
-	    <<lock_count);
+	 <<'\t'<<thresh<<'\t'<<lock_count);
+    //LOG(lp35);
     }
-    LOG("PULSES COUNTED: " << heartRate);
+    //LOG("PULSES COUNTED: " << heartRate);
     return (0);
 }
