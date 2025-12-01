@@ -227,12 +227,13 @@ static void mov_tri_init (Moving_tri *tri) {
 
 // Triangle filter
 static float mov_tri (Moving_tri *tri, float input) {
-//	out[N] = (in[N] - in[N-10]) * (in[N] - in[N+10])
+//	out[N-10] = (in[N-10] - in[N-20]) * (in[N-10] - in[N])
+    // get N-20 (current index before overwritten with new input)
+    int temp = tri->buf[tri->cur_idx];
     tri->buf[tri->cur_idx] = input;
-    tri->cur_idx++;
     int curr = tri->cur_idx;
-    return ((tri->buf[curr] - tri->buf[(curr + 10) % 20]) * (tri->buf[curr] - tri->buf[(curr + 10) % 20]));
-
+    (tri->cur_idx++) % 20;
+    return ((tri->buf[(curr + 10) % 20] - temp) * (tri->buf[(curr + 10) % 20] - tri->buf[curr]));
 }
 
 ///////////////////////////////////////////////////////////
@@ -256,60 +257,75 @@ static int lock_count = 0;
 
 int main() {
     // Which file are we using?
-    string folder = "./ECG_data";
+    string folder = "/h/gfaech01/RealTime/src";
     //string file = "3electrode_joel_ecg_6_21_25.csv";
     //string file = "deena6.csv";
-    string file = "sam_trimmed_3x.csv";
+    string file = "GF_HR.csv";
     analogRead_start(folder + "/" + file, 0);	// Channel 0 or 1.
 
     // Initialize our various filters.
-    mov_avg_init ...
+    mov_avg_init (&moving_avg_5Hz, buf_5Hz, 100);
+    mov_avg_init (&moving_avg_35Hz, buf_35Hz, 14);
+    mov_avg_init (&moving_avg_thresh_2sec, buf_2sec, 1000);
     mov_tri_init (&moving_tri);
     moving_max_init (&moving_thresh_max);
     
     LOG("sample\tnotch60\thp_5Hz\tttm\tlp35\tthresh_2s_avg\tthresh_2s_max\tthresh\tlock_count");
+
+    int heartRate = 0;
 
     for (int i=0; i<6000; ++i) {
 	int32_t sample = analogRead ();
 	if (sample == -1) break;
 
 	// 60Hz notch filter.
-	float notch60 = ...
+	float notch60 = biquad_filter(biquad_60Hz_notch, g_biquad_state, (float)sample / 4095.0);
 
 	// 5 Hz highpass, to remove baseline drift and flatten T wave.
 	// 5Hz = 100 samples @ 2ms/sample. Note that this also turn the input
 	// into a zero-mean signal (otherwise, the absolute value later
 	// would be meaningless). 5 Hz = 100 samples.
-	float avg_5Hz = ...
-	float hp_5Hz = ...
+	float avg_5Hz = mov_avg(&moving_avg_5Hz, notch60);
+	float hp_5Hz = notch60 - avg_5Hz;
 
 	// Absolute value, in case QRS is inverted
-	float abs = ...
+	float abs = std::abs(hp_5Hz);
 
 	// Triangle-filter template match. The triangle is 20ms on each side,
 	// which is 20 samples total width (10 samples on each side).
 	// Keep a 20-sample buffer of 'abs' to help compute this.
-	float ttm = ...
+	float ttm = mov_tri(&moving_tri, abs);
 
 	// Ttm accentuates the R peak nicely, but also has some nasty
 	// oscillations around Q and S. So use a 35Hz low-pass filter.
 	// 35Hz is about 29ms; it cuts the height of ttm roughly in half and
 	// widens it by about 2x, but smooths most of the oscillations.
-	float lp35 = ...
+	float lp35 = mov_avg(&moving_avg_35Hz, ttm);
 
 	// Threshold computation: get the average & max of lp35 over
 	// the last 2 cycles
-	float thresh = ...
-
+	float thresh = (mov_max(&moving_thresh_max, lp35) + mov_avg(&moving_avg_thresh_2sec, lp35)) / 2.0;
+    
 	// Add a lockout so we get one-cycle pulses. Lock for .25 sec, or
 	// 125 cycles
-        if (lock_count>0)	// In a potential R wave
-	    --lock_count;
-	...
 
+    // if the counter reaches zero, leave it until a spike happens. If a spike
+    // happens when the counter isn't zero
+
+    bool spike = (lp35 > thresh) ? true : false; // greater than is true
+
+    if ((lock_count > 0) && spike) {	// In a potential R wave
+        --lock_count;
+    } else if ((lock_count == 0) && spike) {
+        heartRate += 1;
+        lock_count = 125;
+    } else {
+        --lock_count;
+    }
 	LOG(sample<<'\t'<< notch60 <<'\t'<< hp_5Hz <<'\t'<< ttm <<'\t'<< lp35
-	    <<'\t'<< thresh_2s_avg<<'\t'<< thresh_2s_max <<'\t'<<thresh<<'\t'
+	<<'\t'<<thresh<<'\t'
 	    <<lock_count);
     }
+    LOG("PULSES COUNTED: " << heartRate);
     return (0);
 }
