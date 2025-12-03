@@ -55,7 +55,7 @@ def parse_inputfile (filename):
         # All lines other than the top one have a whitespace-separated list
         # of signals, such as "12  5  2". Three values would mean we have three
         # signals; append each signal to one of our three lists.
-        numbs = [int(f) for f in fields]
+        numbs = [float(f) for f in fields]
         assert len(numbs) == len(values), "Incorrect number of numbers"
         for idx,n in enumerate(numbs):
             values[idx].append(n)
@@ -71,9 +71,13 @@ def plot_what_you_want():
     # optional parameters for scale factor and offset (so, e.g., you can scale a
     # Boolean variable by 1000 so that it shows up on the plot).
     #plot_signal ("sample", 1, -2000)
-    plot_signal ("filtered", 1, -2000)
+    # plot_signal("sample")
+    # plot_signal("notch60")
+    # plot_signal("hp_5Hz")
+    plot_signal("lp35")
+    plot_signal("thresh")
     #plot_signal ("peak_1")
-    plot_signal ("deriv_2",8)
+    
 
     # Plot a line for y=0 if desired. If not, then just comment this out.
     n_pts = values[0].size
@@ -95,5 +99,5 @@ def plot_signal (signame, times=1, plus=0, spacing=.002):
     plt.plot (x_axis, data, label=signame, marker=".")
 
 parse_inputfile ("run.out")
-plot_signal()
+
 plot_what_you_want()
